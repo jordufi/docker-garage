@@ -7,17 +7,34 @@ Manage independent Docker Compose stacks from a single UI.
 
 ## Quick Start
 
+**1. Configure your network IP** (in `.env`):
+
+```env
+# Set this to your machine's LAN IP so app links work from other devices (e.g. phone).
+# Find it with:  ipconfig  (Windows)  or  ip a  (Linux/macOS)
+HOST_IP=192.168.1.50
+```
+
+If you only use the dashboard from the same machine, you can leave it as `localhost`.
+
+**2. Launch the stack:**
+
 ```bash
 docker compose up -d --build
 ```
 
-Open **http://localhost:8080** in your browser.
+**3. Open the dashboard:**
 
-| Service    | URL                        |
-|------------|----------------------------|
-| UI         | http://localhost:8080       |
-| API        | http://localhost:8081       |
-| API Docs   | http://localhost:8081/docs  |
+| From              | URL                              |
+|-------------------|----------------------------------|
+| Same machine      | http://localhost:8080             |
+| Phone / other LAN | http://&lt;HOST_IP&gt;:8080      |
+
+| Service    | URL                              |
+|------------|----------------------------------|
+| UI         | http://&lt;HOST_IP&gt;:8080      |
+| API        | http://&lt;HOST_IP&gt;:8081      |
+| API Docs   | http://&lt;HOST_IP&gt;:8081/docs |
 
 ---
 
@@ -28,19 +45,19 @@ Open **http://localhost:8080** in your browser.
 │                  Host Machine                     │
 │                                                   │
 │   ┌──────────┐    ┌────────────┐                  │
-│   │  UI      │──▶│ Controller  │                 │ 
+│   │  UI      │───▶│ Controller │                  │
 │   │ (nginx)  │    │ (FastAPI)  │                  │
 │   │ :8080    │    │ :8081      │                  │
 │   └──────────┘    └─────┬──────┘                  │
 │                         │ docker.sock             │
 │                         ▼                         │
-│              ┌──────────────────┐                 │
-│              │  Managed Apps    │                 │
-│              │  /apps/*         │                 │
-│              │  (independent    │                 │
-│              │   compose stacks)│                 │
-│              └──────────────────┘                 │
-└───────────────────────────────────────────────────┘
+│              ┌──────────────────┐                  │
+│              │  Managed Apps    │                  │
+│              │  /apps/*         │                  │
+│              │  (independent    │                  │
+│              │   compose stacks)│                  │
+│              └──────────────────┘                  │
+└──────────────────────────────────────────────────┘
 ```
 
 **Key design decisions:**
@@ -135,11 +152,13 @@ homeserver/
 
 ### Environment Variables (`.env`)
 
-| Variable          | Default  | Description                |
-|-------------------|----------|----------------------------|
-| `CONTROLLER_PORT` | `8081`   | Host port for the API      |
-| `UI_PORT`         | `8080`   | Host port for the UI       |
-| `APPS_DIR`        | `./apps` | Path to managed apps       |
+| Variable          | Default     | Description                                          |
+|-------------------|-------------|------------------------------------------------------|
+| `HOST_IP`         | `localhost` | Your machine's LAN IP — used in app URLs             |
+| `CONTROLLER_PORT` | `8081`      | Host port for the API                                |
+| `UI_PORT`         | `8080`      | Host port for the UI                                 |
+| `APPS_DIR`        | `./apps`    | Path to managed apps                                 |
+| `HOST_APPS_DIR`   | auto-detect | Host-side absolute path to apps (for bind mounts)    |
 
 ### UI Configuration (`ui/config/config.yaml`)
 
@@ -163,4 +182,3 @@ homeserver/
 ## License
 
 MIT
-
