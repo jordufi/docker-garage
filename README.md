@@ -12,7 +12,7 @@ Manage independent Docker Compose stacks from a single UI.
 ```env
 # Set this to your machine's LAN IP so app links work from other devices (e.g. phone).
 # Find it with:  ipconfig  (Windows)  or  ip a  (Linux/macOS)
-HOST_IP=192.168.1.50
+HOST_IP=192.168.1.40
 ```
 
 If you only use the dashboard from the same machine, you can leave it as `localhost`.
