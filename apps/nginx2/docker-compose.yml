@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: app2
+    restart: unless-stopped
+    ports:
+      - "9091:80"
+    volumes:
+      # ${HOST_APP_DIR} is injected by the controller at runtime.
+      # It resolves to the HOST-side absolute path of this app folder,
+      # which is required because Docker resolves bind mounts on the host.
+      - ${HOST_APP_DIR}/html:/usr/share/nginx/html:ro

@@ -1,0 +1,7 @@
+{
+    "name": "Nginx2",
+    "slug": "nginx2",
+    "description": "A simple Nginx web server for testing the orchestrator. Serves the default Nginx welcome page on port 9090.",
+    "github_url": "https://github.com/nginx/nginx",
+    "port": 9091
+}

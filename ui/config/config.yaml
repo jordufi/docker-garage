@@ -1,0 +1,4 @@
+title: "Home Server"
+logo: "/config/assets/UI-logo.svg"
+api_url: "/api"
+refresh_interval: 10

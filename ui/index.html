@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Server</title>
+
+    <!-- js-yaml for parsing config.yaml -->
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+    <style>
+        /* ───────── CSS Variables / Theme ───────── */
+        :root {
+            --bg:         #0f1117;
+            --surface:    #1a1d27;
+            --card-bg:    #222633;
+            --border:     #2d3244;
+            --accent:     #4f8cff;
+            --accent-hover:#6ba1ff;
+            --danger:     #ff4f6d;
+            --danger-hover:#ff6b84;
+            --success:    #34d399;
+            --warning:    #fbbf24;
+            --text:       #e2e8f0;
+            --text-muted: #8892a8;
+            --radius:     12px;
+            --shadow:     0 2px 12px rgba(0,0,0,0.3);
+        }
+
+        /* ───────── Reset & Base ───────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ───────── Header ───────── */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        .header img {
+            height: 40px;
+            width: 40px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        /* ───────── Main container ───────── */
+        .container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        /* ───────── App Grid ───────── */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        /* ───────── Card ───────── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: border-color 0.2s;
+        }
+        .card:hover {
+            border-color: var(--accent);
+        }
+
+        /* Card header (icon + name + status) */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .card-header img {
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: var(--surface);
+        }
+        .card-header .info {
+            flex: 1;
+        }
+        .card-header .info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        /* Status badge */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status.running .dot  { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .status.running       { color: var(--success); }
+        .status.stopped .dot  { background: var(--danger); }
+        .status.stopped       { color: var(--danger); }
+        .status.partial .dot  { background: var(--warning); }
+        .status.partial       { color: var(--warning); }
+
+        /* Accordion sections (description, github) */
+        .accordion {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .accordion summary {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--surface);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+        .accordion summary::-webkit-details-marker { display: none; }
+        .accordion summary::before {
+            content: '▸';
+            transition: transform 0.2s;
+            font-size: 0.75rem;
+        }
+        .accordion[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .accordion .content {
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            color: var(--text);
+            line-height: 1.5;
+            border-top: 1px solid var(--border);
+        }
+        .accordion .content a {
+            color: var(--accent);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .accordion .content a:hover {
+            text-decoration: underline;
+        }
+
+        /* URL link */
+        .app-url {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .app-url:hover { text-decoration: underline; }
+
+        /* Action buttons */
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .btn-start {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-start:hover:not(:disabled) { background: var(--accent-hover); }
+        .btn-stop {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-stop:hover:not(:disabled) { background: var(--danger-hover); }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 64px 0;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+        .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.3s;
+            max-width: 380px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.error { border-color: var(--danger); color: var(--danger); }
+        .toast.success { border-color: var(--success); color: var(--success); }
+
+        /* Empty state */
+        .empty {
+            text-align: center;
+            padding: 64px 0;
+            color: var(--text-muted);
+        }
+        .empty h2 { margin-bottom: 8px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img id="logo" src="" alt="Logo" />
+        <h1 id="title">Home Server</h1>
+    </div>
+
+    <div class="container">
+        <div id="app-grid" class="app-grid"></div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    (function () {
+        // ─── State ───
+        let API_URL  = '/api';
+        let REFRESH  = 10;
+        let refreshTimer = null;
+        let actionInProgress = false;
+
+        // ─── DOM refs ───
+        const grid    = document.getElementById('app-grid');
+        const logo    = document.getElementById('logo');
+        const title   = document.getElementById('title');
+        const toastEl = document.getElementById('toast');
+
+        // ─── Toast ───
+        function toast(msg, type = 'success') {
+            toastEl.textContent = msg;
+            toastEl.className = 'toast ' + type + ' show';
+            setTimeout(() => toastEl.classList.remove('show'), 3500);
+        }
+
+        // ─── Load config.yaml ───
+        async function loadConfig() {
+            try {
+                const res = await fetch('/config/config.yaml');
+                const text = await res.text();
+                const cfg = jsyaml.load(text);
+                if (cfg.title)  { title.textContent = cfg.title; document.title = cfg.title; }
+                if (cfg.logo)   logo.src = cfg.logo;
+                if (cfg.api_url) API_URL = cfg.api_url;
+                if (cfg.refresh_interval) REFRESH = cfg.refresh_interval;
+            } catch (e) {
+                console.warn('Could not load config.yaml, using defaults', e);
+            }
+        }
+
+        // ─── Fetch apps from API ───
+        async function fetchApps() {
+            // Don't refresh while an action is running
+            if (actionInProgress) return;
+
+            try {
+                const res = await fetch(API_URL + '/apps');
+                if (!res.ok) throw new Error('API error ' + res.status);
+                const apps = await res.json();
+                renderApps(apps);
+            } catch (e) {
+                console.error('Failed to fetch apps:', e);
+                grid.innerHTML = `
+                    <div class="empty">
+                        <h2>Cannot connect to controller</h2>
+                        <p>Make sure the orchestrator is running.</p>
+                    </div>`;
+            }
+        }
+
+        // ─── Render card grid ───
+        function renderApps(apps) {
+            if (!apps.length) {
+                grid.innerHTML = `
+                    <div class="empty">
+                        <h2>No apps found</h2>
+                        <p>Add an app folder to /apps with a docker-compose.yml and app.json</p>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = apps.map(app => `
+                <div class="card">
+                    <div class="card-header">
+                        <img src="${API_URL}/apps/${app.slug}/icon" alt="${app.name}" />
+                        <div class="info">
+                            <h3>${esc(app.name)}</h3>
+                            <span class="status ${app.status}">
+                                <span class="dot"></span>
+                                ${app.status}
+                            </span>
+                        </div>
+                    </div>
+
+                    ${app.description ? `
+                    <details class="accordion">
+                        <summary>Description</summary>
+                        <div class="content">${esc(app.description)}</div>
+                    </details>` : ''}
+
+                    ${app.github_url ? `
+                    <details class="accordion">
+                        <summary>GitHub</summary>
+                        <div class="content">
+                            <a href="${esc(app.github_url)}" target="_blank" rel="noopener">${esc(app.github_url)}</a>
+                        </div>
+                    </details>` : ''}
+
+                    ${app.url ? `
+                    <a class="app-url" href="${esc(app.url)}" target="_blank" rel="noopener">
+                        ↗ ${esc(app.url)}
+                    </a>` : ''}
+
+                    <div class="actions">
+                        <button class="btn btn-start"
+                                onclick="window.__startApp('${app.slug}')"
+                                ${app.status === 'running' ? 'disabled' : ''}>
+                            ▶ Start
+                        </button>
+                        <button class="btn btn-stop"
+                                onclick="window.__stopApp('${app.slug}')"
+                                ${app.status === 'stopped' ? 'disabled' : ''}>
+                            ■ Stop
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ─── HTML escape ───
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str || '';
+            return d.innerHTML;
+        }
+
+        // ─── App actions ───
+        async function appAction(slug, action) {
+            actionInProgress = true;
+
+            // Disable all buttons while action runs
+            document.querySelectorAll('.btn').forEach(b => b.disabled = true);
+
+            try {
+                const res = await fetch(`${API_URL}/apps/${slug}/${action}`, { method: 'POST' });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    toast(data.detail || `Failed to ${action} ${slug}`, 'error');
+                } else {
+                    toast(`${slug}: ${data.message}`, 'success');
+                }
+            } catch (e) {
+                toast(`Network error: ${e.message}`, 'error');
+            } finally {
+                actionInProgress = false;
+                // Re-fetch to update statuses
+                await fetchApps();
+            }
+        }
+
+        // Expose for inline onclick handlers
+        window.__startApp = (slug) => appAction(slug, 'start');
+        window.__stopApp  = (slug) => appAction(slug, 'stop');
+
+        // ─── Init ───
+        async function init() {
+            grid.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading apps…</div>
+                </div>`;
+
+            await loadConfig();
+            await fetchApps();
+
+            // Auto-refresh
+            refreshTimer = setInterval(fetchApps, REFRESH * 1000);
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
