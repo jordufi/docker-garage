@@ -63,5 +63,8 @@ def _detect_host_apps_dir() -> str:
 
 HOST_APPS_DIR: str = _detect_host_apps_dir()
 
+# Host IP / hostname for generating app URLs accessible on the LAN
+HOST_IP: str = os.getenv("HOST_IP", "localhost")
+
 # Regex to validate app slugs — prevents path traversal
 SLUG_PATTERN: re.Pattern = re.compile(r"^[a-zA-Z0-9_-]+$")

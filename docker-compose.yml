@@ -15,6 +15,7 @@ services:
     environment:
       - APPS_DIR=/apps
       - HOST_APPS_DIR=${HOST_APPS_DIR:-}
+      - HOST_IP=${HOST_IP:-localhost}
     networks:
       - homeserver
 

@@ -9,7 +9,7 @@ import json
 import logging
 from pathlib import Path
 
-from .config import APPS_DIR, SLUG_PATTERN
+from .config import APPS_DIR, HOST_IP, SLUG_PATTERN
 from .docker_manager import DockerManager
 from .models import AppMetadata
 
@@ -73,7 +73,7 @@ class AppService:
                 description=data.get("description", ""),
                 github_url=data.get("github_url"),
                 port=port,
-                url=f"http://localhost:{port}" if port else "",
+                url=f"http://{HOST_IP}:{port}" if port else "",
                 status=status,
             )
             result.append(app)
@@ -100,6 +100,6 @@ class AppService:
             description=data.get("description", ""),
             github_url=data.get("github_url"),
             port=port,
-            url=f"http://localhost:{port}" if port else "",
+            url=f"http://{HOST_IP}:{port}" if port else "",
             status=status,
         )
