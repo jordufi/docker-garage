@@ -3,5 +3,5 @@
     "slug": "openwebui",
     "description": "An open source alternative to ChatGPT.",
     "github_url": "https://github.com/open-webui/open-webui",
-    "port": 8081
+    "port": 8082
 }
