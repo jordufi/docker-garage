@@ -1,0 +1,15 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data:/app/backend/data
+    environment:
+      - OPENAI_API_BASE_URL=http://192.168.1.200:1234/v1
+      - OPENAI_API_KEY=none
+      - MODEL=qwen3.5-0.8b
+      - WEBUI_AUTH=False
+    restart: unless-stopped
+
