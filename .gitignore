@@ -23,3 +23,6 @@ Thumbs.db
 todelete
 
 /apps/openwebui/data
+/apps/comfyui
+/apps/image-editing
+/apps/image-generation

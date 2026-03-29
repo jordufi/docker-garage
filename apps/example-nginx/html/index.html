@@ -1,55 +1,803 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Nginx App</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f1117;
-            color: #e2e8f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: #222633;
-            border: 1px solid #2d3244;
-            border-radius: 16px;
-            padding: 48px;
-            text-align: center;
-            max-width: 480px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-        }
-        h1 { color: #4f8cff; margin-bottom: 12px; }
-        p { color: #8892a8; line-height: 1.6; }
-        .badge {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 8px 20px;
-            background: #34d399;
-            color: #0f1117;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker Garage — Your Home Server, Engineered</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;600;700;800&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --surface: #111318;
+    --border: #1e2229;
+    --accent: #e8ff3c;
+    --accent2: #3cffd8;
+    --accent3: #ff5c3c;
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --card: #13161d;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.18s ease, width 0.25s, height 0.25s, border-color 0.2s;
+    opacity: 0.6;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.35;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(232,255,60,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,60,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,11,13,0.85);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-family: 'Syne Mono', monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--muted); }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-cta {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 0.5rem 1.2rem;
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .nav-cta:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8rem 2.5rem 4rem;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero-tag {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.2s forwards;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-title {
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.35s forwards;
+  }
+  .hero-title .line1 { display: block; color: var(--text); }
+  .hero-title .line2 {
+    display: block;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--accent);
+    text-stroke: 1px var(--accent);
+  }
+  .hero-title .blink {
+    display: inline-block;
+    color: var(--accent);
+    animation: blink 1s step-end infinite;
+  }
+
+  .hero-sub {
+    max-width: 500px;
+    font-size: 1.05rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.5s forwards;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.65s forwards;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+  .btn-primary:hover {
+    background: var(--accent2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(60,255,216,0.25);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Hero terminal */
+  .hero-terminal {
+    position: absolute;
+    right: 4%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(420px, 40vw);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    opacity: 0;
+    animation: fadeIn 1s 0.9s forwards;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: #0d0f13;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.red { background: #ff5c3c; }
+  .dot.yellow { background: #e8ff3c; }
+  .dot.green { background: #3cffd8; }
+  .terminal-title {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+  }
+  .terminal-body {
+    padding: 1.2rem;
+    line-height: 1.9;
+  }
+  .t-line { display: flex; gap: 0.5rem; }
+  .t-prompt { color: var(--accent); }
+  .t-cmd { color: var(--text); }
+  .t-out { color: var(--muted); padding-left: 0; }
+  .t-ok { color: var(--accent2); }
+  .t-warn { color: var(--accent); }
+  .t-err { color: var(--accent3); }
+  .t-cursor-line .t-cmd::after {
+    content: '█';
+    animation: blink 1s step-end infinite;
+    color: var(--accent);
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  /* SECTION shared */
+  section {
+    position: relative;
+    z-index: 1;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .section-num {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+  }
+  .section-title {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .section-title span { color: var(--accent); }
+
+  /* FEATURES */
+  .features {
+    padding: 5rem 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .feature-card {
+    background: var(--card);
+    padding: 2.5rem;
+    transition: background 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s;
+  }
+  .feature-card:hover { background: #161a22; }
+  .feature-card:hover::before { background: var(--accent); }
+  .feature-card.accent2:hover::before { background: var(--accent2); }
+  .feature-card.accent3:hover::before { background: var(--accent3); }
+
+  .feature-icon {
+    font-size: 1.8rem;
+    margin-bottom: 1.2rem;
+    display: block;
+  }
+  .feature-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+  }
+  .feature-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .feature-badge {
+    display: inline-block;
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .feature-badge.soon {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .feature-badge.live {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* COMING SOON */
+  .coming {
+    padding: 5rem 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .coming-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+  .coming-card {
+    border: 1px solid var(--border);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .coming-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+  }
+  .coming-card::after {
+    content: 'COMING SOON';
+    position: absolute;
+    top: 1rem; right: 1rem;
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    color: var(--accent3);
+    border: 1px solid var(--accent3);
+    padding: 0.15rem 0.4rem;
+  }
+  .coming-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    filter: grayscale(0.3);
+  }
+  .coming-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .coming-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  /* HOW IT WORKS */
+  .how {
+    padding: 5rem 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0.3;
+    z-index: 0;
+  }
+  .step {
+    padding: 0 2rem 2rem;
+    position: relative;
+    z-index: 1;
+  }
+  .step-num {
+    width: 4rem; height: 4rem;
+    border: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne Mono', monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    background: var(--bg);
+    margin-bottom: 1.5rem;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: background 0.3s;
+  }
+  .step:hover .step-num { background: var(--accent); color: var(--bg); }
+  .step-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .step-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.65; }
+
+  /* CTA */
+  .cta-section {
+    padding: 6rem 2.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,255,60,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .cta-title {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .cta-title span { color: var(--accent); }
+  .cta-sub {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+  .cta-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    z-index: 1;
+    position: relative;
+  }
+  .footer-logo {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .footer-links a {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--accent); }
+  .footer-copy {
+    font-family: 'Syne Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    .hero { padding: 7rem 1.5rem 3rem; }
+    .hero-terminal { display: none; }
+    .features, .coming, .how, .cta-section { padding: 3rem 1.5rem; }
+    footer { padding: 1.5rem; }
+    .steps::before { display: none; }
+    .step { padding: 0 0 2rem; }
+  }
+</style>
 </head>
 <body>
-    <div class="card">
-        <h1>It works!</h1>
-        <p>
-            This page is served by the <strong>example-nginx</strong> app,
-            managed by the Home Server Orchestrator.
-        </p>
-        <p>
-            The HTML is mounted from <code>apps/example-nginx/html/</code>
-            into the Nginx container via a bind mount.
-        </p>
-        <span class="badge">Running on port 9090</span>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">docker<span>/</span>garage</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#coming">Roadmap</a></li>
+    <li><a href="#how">Setup</a></li>
+  </ul>
+  <a href="https://github.com/jordufi/docker-garage" target="_blank" class="nav-cta">→ GitHub</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">Open source · Self-hosted · Docker</div>
+  <h1 class="hero-title">
+    <span class="line1">YOUR HOME</span>
+    <span class="line2">SERVER<span class="blink">_</span></span>
+  </h1>
+  <p class="hero-sub">
+    Docker Garage is a sleek management layer for your home server. Spin up containers, monitor services, and run powerful AI tools — all from one place.
+  </p>
+  <div class="hero-actions">
+    <a href="https://github.com/jordufi/docker-garage" target="_blank" class="btn-primary">
+      ↗ View on GitHub
+    </a>
+    <a href="#features" class="btn-secondary">
+      → Explore Features
+    </a>
+  </div>
+
+  <!-- Terminal -->
+  <div class="hero-terminal">
+    <div class="terminal-bar">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+      <span class="terminal-title">garage — bash</span>
     </div>
+    <div class="terminal-body">
+      <div class="t-line"><span class="t-prompt">$</span><span class="t-cmd">git clone github.com/jordufi/docker-garage</span></div>
+      <div class="t-line"><span class="t-out t-ok">✓ Cloned into 'docker-garage'</span></div>
+      <div class="t-line" style="margin-top:0.4rem"><span class="t-prompt">$</span><span class="t-cmd">cd docker-garage && docker compose up -d</span></div>
+      <div class="t-line"><span class="t-out">[+] Running 6/6</span></div>
+      <div class="t-line"><span class="t-out t-ok"> ✔ Container garage-ui      Started</span></div>
+      <div class="t-line"><span class="t-out t-ok"> ✔ Container garage-api     Started</span></div>
+      <div class="t-line"><span class="t-out t-ok"> ✔ Container garage-db      Started</span></div>
+      <div class="t-line"><span class="t-out t-warn"> ⚑ Container ollama         Running</span></div>
+      <div class="t-line" style="margin-top:0.4rem"><span class="t-prompt">$</span><span class="t-cmd">open http://localhost:3000</span></div>
+      <div class="t-line"><span class="t-out t-ok">✓ Garage is live.</span></div>
+      <div class="t-line t-cursor-line" style="margin-top:0.2rem"><span class="t-prompt">$</span><span class="t-cmd"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-header reveal">
+    <span class="section-num">01</span>
+    <h2 class="section-title">Core <span>Features</span></h2>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-icon">🐳</span>
+      <div class="feature-name">Container Management</div>
+      <div class="feature-desc">Start, stop, restart, and inspect any container on your host. Full lifecycle control without touching the CLI.</div>
+      <span class="feature-badge live">Live</span>
+    </div>
+    <div class="feature-card accent2">
+      <span class="feature-icon">📊</span>
+      <div class="feature-name">Service Dashboard</div>
+      <div class="feature-desc">Real-time CPU, memory, and network stats across all your running services in a unified view.</div>
+      <span class="feature-badge live">Live</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔌</span>
+      <div class="feature-name">Local Web Pages</div>
+      <div class="feature-desc">Manage and expose internal web services behind your server. Access everything from one dashboard.</div>
+      <span class="feature-badge live">Live</span>
+    </div>
+    <div class="feature-card accent3">
+      <span class="feature-icon">🔒</span>
+      <div class="feature-name">Self-Hosted First</div>
+      <div class="feature-desc">No cloud, no subscriptions, no telemetry. Your server, your rules. Everything runs on your hardware.</div>
+      <span class="feature-badge live">Live</span>
+    </div>
+  </div>
+</section>
+
+<!-- COMING SOON -->
+<section class="coming" id="coming">
+  <div class="section-header reveal">
+    <span class="section-num">02</span>
+    <h2 class="section-title">The <span>Roadmap</span></h2>
+  </div>
+  <p class="reveal" style="color: var(--muted); margin-bottom: 2.5rem; max-width: 540px; line-height: 1.7; font-size: 0.95rem;">
+    Docker Garage is growing. These AI-powered modules are coming — turning your home server into a full local AI stack.
+  </p>
+  <div class="coming-grid reveal">
+    <div class="coming-card">
+      <span class="coming-icon">🎨</span>
+      <div class="coming-name">Image Generation</div>
+      <div class="coming-desc">Run Stable Diffusion or FLUX locally. Generate images on your own GPU, with no API costs and no limits.</div>
+    </div>
+    <div class="coming-card">
+      <span class="coming-icon">🧊</span>
+      <div class="coming-name">Image → 3D</div>
+      <div class="coming-desc">Convert 2D images into 3D models using local inference. Export to glTF or OBJ for use in any pipeline.</div>
+    </div>
+    <div class="coming-card">
+      <span class="coming-icon">🧠</span>
+      <div class="coming-name">LLM + Open WebUI</div>
+      <div class="coming-desc">One-click Ollama deployment with Open WebUI as the frontend. Run Llama, Mistral, Gemma, and more — locally.</div>
+    </div>
+    <div class="coming-card">
+      <span class="coming-icon">🌐</span>
+      <div class="coming-name">Local Web Pages</div>
+      <div class="coming-desc">Deploy and serve your own static or dynamic web apps within the Garage ecosystem, all behind a unified interface.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-header reveal">
+    <span class="section-num">03</span>
+    <h2 class="section-title">Up in <span>Minutes</span></h2>
+  </div>
+  <div class="steps reveal">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Clone the Repo</div>
+      <div class="step-desc">Pull the project from GitHub onto your home server or any machine running Docker.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">Configure</div>
+      <div class="step-desc">Edit the .env file to match your setup — ports, volumes, GPU access, and service names.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Compose Up</div>
+      <div class="step-desc">Run <code style="font-family:'Syne Mono',monospace;color:var(--accent)">docker compose up -d</code> and the entire stack launches automatically.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-title">Open the Garage</div>
+      <div class="step-desc">Navigate to localhost:3000 and start managing your services from a clean, unified dashboard.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="reveal">
+    <h2 class="cta-title">Take the<br><span>wheel.</span></h2>
+  </div>
+  <p class="cta-sub reveal">
+    Open source, self-hosted, and built for people who actually own their infrastructure. Star the repo and join the build.
+  </p>
+  <div class="cta-buttons reveal">
+    <a href="https://github.com/jordufi/docker-garage" target="_blank" class="btn-primary">
+      ★ Star on GitHub
+    </a>
+    <a href="https://github.com/jordufi/docker-garage/issues" target="_blank" class="btn-secondary">
+      → Contribute
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">docker/garage</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/jordufi/docker-garage" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/jordufi/docker-garage/issues" target="_blank">Issues</a></li>
+    <li><a href="https://github.com/jordufi/docker-garage/blob/main/LICENSE" target="_blank">License</a></li>
+  </ul>
+  <span class="footer-copy">MIT License · Open Source</span>
+</footer>
+
+<script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function animCursor() {
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) *.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animCursor);
+  }
+  animCursor();
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => { cursor.style.width = '20px'; cursor.style.height = '20px'; ring.style.width = '56px'; ring.style.height = '56px'; });
+    el.addEventListener('mouseleave', () => { cursor.style.width = '12px'; cursor.style.height = '12px'; ring.style.width = '36px'; ring.style.height = '36px'; });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Stagger feature cards
+  document.querySelectorAll('.feature-card, .coming-card').forEach((el, i) => {
+    el.style.transitionDelay = (i * 0.07) + 's';
+  });
+</script>
 </body>
 </html>
